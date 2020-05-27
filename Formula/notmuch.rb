@@ -21,6 +21,7 @@ class Notmuch < Formula
   depends_on "glib"
   depends_on "gmime"
   depends_on "python@3.8"
+  depends_on "ruby"
   depends_on "talloc"
   depends_on "xapian"
   depends_on "zlib"
@@ -33,7 +34,6 @@ class Notmuch < Formula
       --emacsetcdir=#{elisp}
       --bashcompletiondir=#{bash_completion}
       --zshcompletiondir=#{zsh_completion}
-      --without-ruby
     ]
 
     ENV.append_path "PYTHONPATH", Formula["sphinx-doc"].opt_libexec/"lib/python3.8/site-packages"
@@ -50,6 +50,24 @@ class Notmuch < Formula
     cd "bindings/python" do
       system Formula["python@3.8"].opt_bin/"python3", *Language::Python.setup_install_args(prefix)
     end
+
+    # Ruby bindings are installed under bindings/ruby/ There is a
+    # notmuch.bundle file that needs to be installed under
+    # /usr/local/Cellar/ruby/2.7.1_2/lib/ruby/2.7.0/x86_64-darwin18/ However,
+    # the automatically generated Makefile that is created in the
+    # bindings/ruby/ file uses the wrong install path. In fact, it does
+    # correctly define a variable to that path ($(rubyarchdir)) but it doesn't
+    # use it. Instead, the `make install` target uses a different variable with the same name in upper
+    # case ($(RUBYARCHDIR)) which instead points to
+    # /usr/local/lib/ruby/vendor_ruby/2.7.0/x86_64-darwin18, which doesn't
+    # exist and therefore fails to install.
+    # In order to get this to work, we need to find a way to make `make
+    # install` from the bindings/ruby/ directory install to the correct path.
+    # Then, it's just a matter of adding
+    cd "bindings/ruby" do
+      system "make", "install"
+    end
+    # to this formula!
   end
 
   test do
